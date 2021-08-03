@@ -60,17 +60,38 @@ const deleteVoucher = async (req, res, next) => {
     try {
         const merchId = req.params.id; //Merch ID
         const vouchId = req.params.vouchId;
-        await await firestore.collection('merchants').doc(merchId).collection('vouchers').doc(vouchId).delete();
+        await firestore.collection('merchants').doc(merchId).collection('vouchers').doc(vouchId).delete();
         res.send("Voucher deleted successfully!");
     } catch (error) {
         res.status(400).send(error.message);
     }
 }
 
+const getVoucherByVoucherId = async (req, res, next) => {
+    try {
+        const merchId = req.params.id; //Merch ID
+        const vouchId = req.params.vouchId;
+        const data = await firestore.collection('merchants').doc(merchId).collection('vouchers').get(vouchId);
+
+        res.send(data);
+    } catch (error) {
+        res.status(400).send(error.message);
+    }
+}
+
+function getVoucherDetails(merchId, vouchId) {
+    //to call the service to get the voucher
+    return getVoucherByVoucherId;
+}
+
+
+
 
 module.exports = {
     createVouchers,
     getAllVouchersByMerchant,
     updateVoucher,
-    deleteVoucher
+    deleteVoucher,
+    getVoucherByVoucherId,
+    getVoucherDetails
 }
