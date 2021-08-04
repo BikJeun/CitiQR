@@ -148,48 +148,35 @@ const getAllVouchersByUserByMerchant = async (req, res, next) => {
     }
 }
 
-function getAllVouchersByUserByMerchantInternal(userId, merchId) {
-    const data = await firestore.collection('users').doc(userId).collection('merchants').doc(merchId).collection('vouchers');
-    const allVouchers = await data.get();
+async function getAllVouchers(merchantArr, userId) {
     const voucherArr = [];
-    if (allVouchers.empty) {
-        res.status(400).send("No Voucher Record found");
-    } else {
-        allVouchers.forEach(vouch => {
-            const voucher = new Voucher(
-                vouch.id,
-                vouch.data().value,
-                vouch.data().qty,
-                vouch.data().expiry,
-                vouch.data().isAvailable,
-                vouch.data().isGenerated,
-                vouch.data().price
-
-            );
-            voucherArr.push(voucher);
-        });
+    for (let i = 0; i < merchantArr.length; i++) {
+        const data = firestore.collection('users').doc(userId).collection('merchants').doc(merchantArr[i]).collection('vouchers');
+        const allVouchersSnapshot = await data.get();
+        if (allVouchersSnapshot.empty) {
+            res.status(400).send("No Voucher Record found");
+        } else {
+            allVouchersSnapshot.forEach(vouch => {
+                const voucher = new Voucher(
+                    vouch.id,
+                    vouch.data().value,
+                    vouch.data().qty,
+                    vouch.data().expiry,
+                    vouch.data().isAvailable,
+                    vouch.data().isGenerated,
+                    vouch.data().price
+                );
+                voucherArr.push(voucher);
+            })
+        }
     }
     return voucherArr;
 }
 
-//its returning before the data fully returns
-// 2 prints before 1
-function getAllVouchers(merchantArr, userId) {
-    const voucherArr = [];
-    merchantArr.forEach(merchId => {
-        const vouchers = getAllVouchersByUserByMerchantInternal(userId, merchId);
-        voucherArr.push(vouchers);
-        console.log("1.", voucherArr);
-    });
-    console.log("2.", voucherArr);
-    return voucherArr;
-}
-
-//fetching empty vouchers
 const getAllVouchersFromUsers = async (req, res, next) => {
     try {
         const merchants = await merchantController.getAllMerchantInternal();
-        console.log(merchants);
+        //console.log(merchants);
         const merchantArr = [];
         merchants.forEach(merch => {
             merchantArr.push(merch.id);
@@ -197,6 +184,7 @@ const getAllVouchersFromUsers = async (req, res, next) => {
 
         var voucherArr = [];
         const userId = req.params.userId;
+
         voucherArr = await getAllVouchers(merchantArr, userId);
 
         console.log("final", voucherArr);
