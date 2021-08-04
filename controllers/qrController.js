@@ -3,18 +3,26 @@ const Qr = require('../models/qr');
 const firestore = firebase.firestore();
 const voucherController = require('./voucherController');
 
-const createQr = async (req, res, next) => {
+const createqrcode = async (req, res, next) => {
     try {
-        const userId = req.params.id;
-        const voucher = voucherController.getVoucherDetails(req.params.merchId, req.params.voucherId);
-        const voucherId = voucherController.createPurchasedVoucher(userId) //to create method in controller to get back the ID
-
+        const merchId = req.params.id; //Merch ID
+        const vouchId = req.params.vouchId;
+        const userId = req.params.userId;
         const data = req.body;
-        await firestore.collection('users').doc(userId).collection('vouchers').doc(voucherId).set(data);
-        res.send("QR Created Successfully");
-
+        const updatedVoucher = await firestore.collection('users').doc(userId).collection('merchants').doc(merchId).collection('vouchers').doc(vouchId);
+        await updatedVoucher.update(data);
+        const createQR = await firestore.collection('users').doc(userId).collection('merchants').doc(merchId).collection('vouchers').doc(vouchId).collection('qr').doc().set(data);
+        await createQR.update(data);
+        res.send("QR code created successfully updated");
     } catch (error) {
         res.status(400).send(error.message);
     }
+}
+
+
+
+
+module.exports = {
+    createqrcode
 }
 

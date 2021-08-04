@@ -1,4 +1,6 @@
 const firebase = require('../db');
+const admin = require('../dbAdmin');
+const Merchant = require('../models/merchant');
 const Voucher = require('../models/voucher');
 const firestore = firebase.firestore();
 
@@ -56,6 +58,42 @@ const updateVoucher = async (req, res, next) => {
     }
 }
 
+//DECREMENT OF VOUCHER HAVE ISSUES
+const updateVoucherUponPurchase = async (req, res, next) => {
+    try {
+        const merchId = req.params.id; //Merch ID
+        const vouchId = req.params.vouchId;
+        const userId = req.params.userId;
+        const data = req.body;
+        const voucherArr = [];
+        const voucher = await firestore.collection('merchants').doc(merchId).collection('vouchers').doc(vouchId);
+        console.log(voucher.get('qty'));
+        await voucher.update({
+            qty: admin.firestore.FieldValue.increment(-1)
+        });
+
+        const datas = await firestore.collection('merchants').doc(merchId).collection('vouchers').doc(vouchId).get();
+        datas = JSON.parse(datas);
+        datas.forEach(vouch => {
+            const voucher = new Voucher(
+                vouch.id,
+                vouch.data().merchantName,
+                vouch.data().value,
+                vouch.data().qty,
+                vouch.data().expiry,
+                vouch.data().isAvailable,
+                vouch.data().price
+
+            );
+            voucherArr.push(voucher);
+        });
+        await firestore.collection('users').doc(userId).collection('merchants').doc(merchId).collection('vouchers').doc(vouchId).set(datas);
+        res.send("Voucher details updated");
+    } catch (error) {
+        res.status(400).send(error.message);
+    }
+}
+
 const deleteVoucher = async (req, res, next) => {
     try {
         const merchId = req.params.id; //Merch ID
@@ -79,11 +117,58 @@ const getVoucherByVoucherId = async (req, res, next) => {
     }
 }
 
-function getVoucherDetails(merchId, vouchId) {
-    //to call the service to get the voucher
-    return getVoucherByVoucherId;
+const getAllVouchersByUserByMerchant = async (req, res, next) => {
+    try {
+        const userId = req.params.userId;
+        const merchid = req.params.id;
+        const data = await firestore.collection('users').doc(userId).collection('merchants').doc(merchid).collection('vouchers').get();
+        const voucherArr = [];
+        if (data.empty) {
+            res.status(400).send("No Voucher Record found");
+        } else {
+            data.forEach(vouch => {
+                const voucher = new Voucher(
+                    vouch.id,
+                    vouch.data().merchantName,
+                    vouch.data().value,
+                    vouch.data().qty,
+                    vouch.data().expiry,
+                    vouch.data().isAvailable,
+                    vouch.data().price
+
+                );
+                voucherArr.push(voucher);
+            });
+            res.send(voucherArr);
+        }
+    } catch (error) {
+        res.status(400).send(error.message);
+    }
 }
 
+const getAllVouchersFromUsers = async (req, res, next) => {
+    const userId = req.params.userId;
+    const allMerchants = await firestore.collection('users').doc(userId).collection("merchants").get();
+    // const subCollections = await allMerchants.subCollections();
+    console.log("entering");
+    const merchantArr = [];
+    // console.log(snapshot);
+    if (allMerchants.empty) {
+        res.status(400).send("No Merchant Record found");
+    } else {
+        allMerchants.forEach(doc => {
+            const merch = new Merchant(
+                doc.id
+            );
+            merchantArr.push(merch);
+        });
+    }
+
+
+    console.log(merchantArr);
+    // res.send("done");
+    const voucherArr = [];
+}
 
 
 
@@ -93,5 +178,7 @@ module.exports = {
     updateVoucher,
     deleteVoucher,
     getVoucherByVoucherId,
-    getVoucherDetails
+    updateVoucherUponPurchase,
+    getAllVouchersByUserByMerchant,
+    getAllVouchersFromUsers
 }

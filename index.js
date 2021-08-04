@@ -6,6 +6,7 @@ const config = require('./config');
 const userRoutes = require('./routes/user-routes');
 const merchantRoutes = require('./routes/merchant-routes');
 const voucherRoutes = require('./routes/voucher-routes');
+const qrRoutes = require('./routes/qr-routes');
 
 const app = express();
 
@@ -16,5 +17,6 @@ app.use(bodyParser.json());
 app.use('/api', userRoutes.routes);
 app.use('/api', merchantRoutes.routes);
 app.use('/api', voucherRoutes.routes);
+app.use('/api', qrRoutes.routes);
 
 app.listen(config.port, () => console.log('App is listening on url http://localhost:' + config.port));
