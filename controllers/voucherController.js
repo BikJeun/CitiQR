@@ -3,6 +3,8 @@ const admin = require('../dbAdmin');
 const Merchant = require('../models/merchant');
 const Voucher = require('../models/voucher');
 const firestore = firebase.firestore();
+// const firestoreAdmin = admin.firestore();
+const merchantController = require('../controllers/merchantController');
 
 const createVouchers = async (req, res, next) => {
     try {
@@ -129,11 +131,11 @@ const getAllVouchersByUserByMerchant = async (req, res, next) => {
             data.forEach(vouch => {
                 const voucher = new Voucher(
                     vouch.id,
-                    vouch.data().merchantName,
                     vouch.data().value,
                     vouch.data().qty,
                     vouch.data().expiry,
                     vouch.data().isAvailable,
+                    vouch.data().isGenerated,
                     vouch.data().price
 
                 );
@@ -146,28 +148,65 @@ const getAllVouchersByUserByMerchant = async (req, res, next) => {
     }
 }
 
-const getAllVouchersFromUsers = async (req, res, next) => {
-    const userId = req.params.userId;
-    const allMerchants = await firestore.collection('users').doc(userId).collection("merchants").get();
-    // const subCollections = await allMerchants.subCollections();
-    console.log("entering");
-    const merchantArr = [];
-    // console.log(snapshot);
-    if (allMerchants.empty) {
-        res.status(400).send("No Merchant Record found");
+async function getAllVouchersByUserByMerchantInternal(userId, merchId) {
+    const data = await firestore.collection('users').doc(userId).collection('merchants').doc(merchId).collection('vouchers');
+    const allVouchers = await data.get();
+    const voucherArr = [];
+    if (allVouchers.empty) {
+        res.status(400).send("No Voucher Record found");
     } else {
-        allMerchants.forEach(doc => {
-            const merch = new Merchant(
-                doc.id
+        allVouchers.forEach(vouch => {
+            const voucher = new Voucher(
+                vouch.id,
+                vouch.data().value,
+                vouch.data().qty,
+                vouch.data().expiry,
+                vouch.data().isAvailable,
+                vouch.data().isGenerated,
+                vouch.data().price
+
             );
-            merchantArr.push(merch);
+            voucherArr.push(voucher);
         });
     }
+    return voucherArr;
+}
 
-
-    console.log(merchantArr);
-    // res.send("done");
+//its returning before the data fully returns
+// 2 prints before 1
+async function getAllVouchers(merchantArr, userId) {
     const voucherArr = [];
+    merchantArr.forEach(async merchId => {
+        const vouchers = await getAllVouchersByUserByMerchantInternal(userId, merchId);
+        voucherArr.push(vouchers);
+        console.log("1.", voucherArr);
+    });
+    console.log("2.", voucherArr);
+    return voucherArr;
+}
+
+//fetching empty vouchers
+const getAllVouchersFromUsers = async (req, res, next) => {
+    try {
+        const merchants = await merchantController.getAllMerchantInternal();
+        console.log(merchants);
+        const merchantArr = [];
+        merchants.forEach(merch => {
+            merchantArr.push(merch.id);
+        })
+
+        var voucherArr = [];
+        const userId = req.params.userId;
+        voucherArr = await getAllVouchers(merchantArr, userId);
+
+        console.log("final", voucherArr);
+
+        res.send(voucherArr);
+
+    } catch (error) {
+        res.status(400).send(error.message);
+    }
+
 }
 
 
@@ -180,5 +219,6 @@ module.exports = {
     getVoucherByVoucherId,
     updateVoucherUponPurchase,
     getAllVouchersByUserByMerchant,
-    getAllVouchersFromUsers
+    getAllVouchersFromUsers,
+    getAllVouchersByUserByMerchantInternal
 }

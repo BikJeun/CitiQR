@@ -27,6 +27,7 @@ const getAllMerchant = async (req, res, next) => {
                     doc.data().email,
                     doc.data().password,
                     doc.data().acctCreationDate,
+                    doc.data().role
                 );
                 merchArr.push(merchant);
             });
@@ -35,6 +36,25 @@ const getAllMerchant = async (req, res, next) => {
     } catch (error) {
         res.status(400).send(error.message);
     }
+}
+
+async function getAllMerchantInternal() {
+    const user = await firestore.collection('merchants');
+    const data = await user.get();
+    const merchArr = [];
+    data.forEach(doc => {
+        const merchant = new Merchant(
+            doc.id,
+            doc.data().merchantName,
+            doc.data().email,
+            doc.data().password,
+            doc.data().acctCreationDate,
+            doc.data().role
+        );
+        merchArr.push(merchant);
+    });
+
+    return merchArr;
 }
 
 const getMerchById = async (req, res, next) => {
@@ -66,5 +86,6 @@ module.exports = {
     createMerchant,
     getAllMerchant,
     getMerchById,
-    deleteMerchant
+    deleteMerchant,
+    getAllMerchantInternal
 }
