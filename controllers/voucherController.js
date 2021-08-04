@@ -148,7 +148,7 @@ const getAllVouchersByUserByMerchant = async (req, res, next) => {
     }
 }
 
-async function getAllVouchersByUserByMerchantInternal(userId, merchId) {
+function getAllVouchersByUserByMerchantInternal(userId, merchId) {
     const data = await firestore.collection('users').doc(userId).collection('merchants').doc(merchId).collection('vouchers');
     const allVouchers = await data.get();
     const voucherArr = [];
@@ -174,10 +174,10 @@ async function getAllVouchersByUserByMerchantInternal(userId, merchId) {
 
 //its returning before the data fully returns
 // 2 prints before 1
-async function getAllVouchers(merchantArr, userId) {
+function getAllVouchers(merchantArr, userId) {
     const voucherArr = [];
-    merchantArr.forEach(async merchId => {
-        const vouchers = await getAllVouchersByUserByMerchantInternal(userId, merchId);
+    merchantArr.forEach(merchId => {
+        const vouchers = getAllVouchersByUserByMerchantInternal(userId, merchId);
         voucherArr.push(vouchers);
         console.log("1.", voucherArr);
     });
